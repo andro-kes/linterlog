@@ -1,123 +1,162 @@
 package linterlog
 
 import (
+	"errors"
 	"go/ast"
+	"go/token"
+	"strconv"
+	"strings"
+	"unicode"
+
 	"golang.org/x/tools/go/analysis"
 )
 
-const Doc = `linterlog is a linter for analyzing log statements in Go code
-
-This linter checks log statements in your Go code against configurable rules.
-You can define custom rules to ensure consistent logging practices across your codebase.
-
-Example rules you can implement:
-- Ensure log messages start with a capital letter
-- Check for proper log level usage
-- Validate log message format
-- Ensure structured logging fields follow conventions
-- Check for sensitive data in log messages
+const Doc = `linterlog - статический анализатор для Go кода
+Правила:
+	- Лог-сообщения должны начинаться со строчной буквы
+	- Лог-сообщения должны быть только на английском языке
+	- Лог-сообщения не должны содержать спецсимволы или эмодзи
+	- Лог-сообщения не должны содержать чувствительные данные
 `
 
-// Analyzer is the main analyzer for linterlog
 var Analyzer = &analysis.Analyzer{
 	Name: "linterlog",
 	Doc:  Doc,
 	Run:  run,
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
-			// Visit all call expressions to find logging calls
 			call, ok := n.(*ast.CallExpr)
 			if !ok {
 				return true
 			}
-
-			// Check if this is a logging function call
 			if isLogCall(call) {
 				checkLogCall(pass, call)
 			}
-
 			return true
 		})
 	}
 	return nil, nil
 }
 
-// isLogCall checks if a call expression is a logging function call
-// This is where you can define which functions are considered logging functions
 func isLogCall(call *ast.CallExpr) bool {
-	// Get the function selector
 	selector, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return false
 	}
 
-	// Check for common logging function names
-	// Extend this list based on your logging library
 	logFuncs := map[string]bool{
-		"Print":   true,
-		"Println": true,
-		"Printf":  true,
-		"Fatal":   true,
-		"Fatalf":  true,
-		"Fatalln": true,
-		"Panic":   true,
-		"Panicf":  true,
-		"Panicln": true,
-		"Error":   true,
-		"Errorf":  true,
-		"Errorln": true,
-		"Warn":    true,
-		"Warnf":   true,
-		"Warnln":  true,
+		"Print": true, "Println": true, "Printf": true,
+		"Fatal": true, "Fatalf": true, "Fatalln": true,
+		"Panic": true, "Panicf": true, "Panicln": true,
+		"Error": true, "Errorf": true, "Errorln": true,
+		"Warn": true, "Warnf": true, "Warnln": true,
 		"Warning": true,
-		"Info":    true,
-		"Infof":   true,
-		"Infoln":  true,
-		"Debug":   true,
-		"Debugf":  true,
-		"Debugln": true,
-		"Log":     true,
-		"Logf":    true,
+		"Info": true, "Infof": true, "Infoln": true,
+		"Debug": true, "Debugf": true, "Debugln": true,
+		"Log": true, "Logf": true,
 	}
 
 	return logFuncs[selector.Sel.Name]
 }
 
-// checkLogCall performs checks on a logging call
-// This is where you implement your custom rules
 func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
-	// Example rule: Check if log call has at least one argument
 	if len(call.Args) == 0 {
-		pass.Reportf(call.Pos(), "log call should have at least one argument")
 		return
 	}
+	msgExpr := call.Args[0]
 
-	// Example rule: Check if the first argument is a string literal
-	// You can add more sophisticated checks here
-	if lit, ok := call.Args[0].(*ast.BasicLit); ok {
-		checkLogMessage(pass, call, lit)
+	switch e := msgExpr.(type) {
+	case *ast.BasicLit:
+		checkLogMessage(pass, e)
+
+	case *ast.BinaryExpr:
+		checkBinaryMessage(pass, e)
+
+	default:
 	}
 }
 
-// checkLogMessage performs checks on the log message
-// Implement your custom rules here
-func checkLogMessage(pass *analysis.Pass, call *ast.CallExpr, lit *ast.BasicLit) {
-	// Example: You can add rules like:
-	// - Check message format
-	// - Check for sensitive data patterns
-	// - Ensure messages start with capital letter
-	// - Check for proper structured logging format
-	
-	// This is a placeholder for your custom rules
-	// Uncomment and modify the example below:
-	
-	/*
-	message := lit.Value
-	if len(message) > 2 && message[1] >= 'a' && message[1] <= 'z' {
-		pass.Reportf(lit.Pos(), "log message should start with a capital letter")
+func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit) {
+	if lit.Kind != token.STRING {
+		return
 	}
-	*/
+
+	unquoted, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return
+	}
+
+	message := []rune(unquoted)
+
+	if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
+		pass.Reportf(lit.Pos(), "log message should not start with a capital letter")
+	}
+
+	for _, r := range message {
+		if !isASCIILetter(r) && !unicode.IsSpace(r) {
+			pass.Reportf(lit.Pos(), "log message should contain only english symbols")
+			break
+		}
+	}
+}
+
+func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr) {
+	parts := extractStringLiteralsFromConcat(expr)
+
+	for _, p := range parts {
+		if err := checkSensitiveData(p); err != nil {
+			pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
+			return
+		}
+	}
+
+	joined := strings.Join(parts, "")
+	if err := checkSensitiveData(joined); err != nil {
+		pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
+		return
+	}
+}
+
+func extractStringLiteralsFromConcat(e ast.Expr) []string {
+	var out []string
+
+	var walk func(ast.Expr)
+	walk = func(x ast.Expr) {
+		switch n := x.(type) {
+		case *ast.BinaryExpr:
+			if n.Op == token.ADD {
+				walk(n.X)
+				walk(n.Y)
+			}
+		case *ast.ParenExpr:
+			walk(n.X)
+		case *ast.BasicLit:
+			if n.Kind == token.STRING {
+				if unq, err := strconv.Unquote(n.Value); err == nil {
+					out = append(out, unq)
+				}
+			}
+		}
+	}
+
+	walk(e)
+	return out
+}
+
+func isASCIILetter(r rune) bool {
+	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+}
+
+func checkSensitiveData(msg string) error {
+	sensitiveData := []string{"password", "token"}
+	lower := strings.ToLower(msg)
+	for _, sd := range sensitiveData {
+		if strings.Contains(lower, sd) {
+			return errors.New("sensitive data was detected")
+		}
+	}
+	return nil
 }
