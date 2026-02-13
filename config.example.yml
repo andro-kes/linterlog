@@ -1,0 +1,48 @@
+# Конфигурация linterlog
+
+# Здесь вы можете определить конфигурацию для вашего линтера
+# Это пример структуры, которую можно расширить
+
+# Список пакетов/библиотек логирования для проверки
+logging_packages:
+  - "log"
+  - "github.com/sirupsen/logrus"
+  - "go.uber.org/zap"
+  - "github.com/rs/zerolog"
+
+# Правила проверки
+rules:
+  # Форматирование сообщений
+  message_format:
+    enabled: true
+    require_capital_first_letter: false  # изменить на true для включения
+    forbid_trailing_period: false        # изменить на true для включения
+    max_length: 100
+    
+  # Безопасность
+  security:
+    enabled: true
+    check_sensitive_data: true
+    sensitive_patterns:
+      - "password"
+      - "token"
+      - "secret"
+      - "api_key"
+      - "apikey"
+      - "credential"
+      
+  # Структурированное логирование
+  structured_logging:
+    enabled: false
+    require_structured: false
+    
+  # Уровни логирования
+  log_levels:
+    enabled: false
+    forbid_debug_in_production: false
+    
+# Исключения (glob patterns)
+exclude_patterns:
+  - "*_test.go"
+  - "vendor/*"
+  - "testdata/*"

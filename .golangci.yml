@@ -1,0 +1,37 @@
+# golangci-lint configuration file
+# This file shows how to configure linterlog with golangci-lint
+
+linters-settings:
+  # Custom linters configuration
+  custom:
+    linterlog:
+      # Path to the plugin .so file
+      # Build it with: make plugin
+      path: ./bin/linterlog.so
+      # Description of the linter
+      description: Linter for analyzing log statements in Go code
+      # Original URL of the linter
+      original-url: github.com/andro-kes/linterlog
+
+linters:
+  enable:
+    - linterlog
+  disable-all: false
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+  # Include test files
+  tests: true
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+# output configuration options
+output:
+  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate
+  formats:
+    - format: colored-line-number
