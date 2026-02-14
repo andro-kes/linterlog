@@ -89,7 +89,7 @@ func TestSensitiveExtended() {
 }
 
 func TestSensitiveConcat() {
-	log.Print("secret " + "found")    // want "log message should not contain sensitive data"
+	log.Print("secret " + "found") // want "log message should not contain sensitive data"
 
 	// Valid concatenated strings
 	log.Print("validation " + "successful")

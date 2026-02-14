@@ -60,7 +60,7 @@ func isLogCall(call *ast.CallExpr) bool {
 		"Error": true, "Errorf": true, "Errorln": true,
 		"Warn": true, "Warnf": true, "Warnln": true,
 		"Warning": true,
-		"Info": true, "Infof": true, "Infoln": true,
+		"Info":    true, "Infof": true, "Infoln": true,
 		"Debug": true, "Debugf": true, "Debugln": true,
 		"Log": true, "Logf": true,
 	}
@@ -103,8 +103,8 @@ func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit, cfg *config.Config)
 			message[0] = unicode.ToLower(message[0])
 			pass.Report(
 				analysis.Diagnostic{
-					Pos: lit.Pos(),
-					End: lit.End(),
+					Pos:     lit.Pos(),
+					End:     lit.End(),
 					Message: "log message should not start with a capital letter",
 					SuggestedFixes: []analysis.SuggestedFix{
 						{
@@ -119,31 +119,31 @@ func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit, cfg *config.Config)
 						},
 					},
 				},
-			)	
+			)
 		}
 	}
-	
+
 	// Rule 3: Check for special symbols first (!, :, ;, ..., emojis)
 	if cfg.Rules.SpecialSymbols {
 		if hasSpecialSymbols(message) {
 			pass.Reportf(lit.Pos(), "log message should not contain special symbols or emojis")
 			return
-		}	
+		}
 	}
-	
+
 	// Rule 2: Check for English-only + digits
 	if cfg.Rules.OnlyEnglish {
 		if !isEnglishOnly(message) {
 			pass.Reportf(lit.Pos(), "log message should contain only english symbols")
 			return
-		}	
+		}
 	}
-	
+
 	// Rule 4: Check for sensitive data
 	if cfg.Rules.SensitiveData {
 		if err := checkSensitiveData(unquoted); err != nil {
 			pass.Reportf(lit.Pos(), "log message should not contain sensitive data")
-		}	
+		}
 	}
 }
 
@@ -158,8 +158,8 @@ func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr, cfg *config.C
 			message[0] = unicode.ToLower(message[0])
 			pass.Report(
 				analysis.Diagnostic{
-					Pos: expr.Pos(),
-					End: expr.End(),
+					Pos:     expr.Pos(),
+					End:     expr.End(),
 					Message: "log message should not start with a capital letter",
 					SuggestedFixes: []analysis.SuggestedFix{
 						{
@@ -174,10 +174,10 @@ func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr, cfg *config.C
 						},
 					},
 				},
-			)	
+			)
 		}
 	}
-	
+
 	// Rule 3: Check for special symbols first (!, :, ;, ..., emojis)
 	if cfg.Rules.SpecialSymbols {
 		if hasSpecialSymbols(message) {
@@ -185,15 +185,15 @@ func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr, cfg *config.C
 			return
 		}
 	}
-	
+
 	// Rule 2: Check for English-only + digits
 	if cfg.Rules.OnlyEnglish {
 		if !isEnglishOnly(message) {
 			pass.Reportf(expr.Pos(), "log message should contain only english symbols")
 			return
-		}	
+		}
 	}
-	
+
 	// Rule 4: Check for sensitive data in parts and joined message
 	if cfg.Rules.SensitiveData {
 		for _, p := range parts {
@@ -201,9 +201,9 @@ func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr, cfg *config.C
 				pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
 				return
 			}
-		}	
+		}
 	}
-	
+
 	if err := checkSensitiveDataWithToken(joined); err != nil {
 		pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
 		return
