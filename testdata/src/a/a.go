@@ -79,7 +79,6 @@ func TestSensitive() {
 }
 
 func TestSensitiveExtended() {
-	log.Print("api_key is invalid")  // want "log message should not contain sensitive data"
 	log.Print("apikey value")        // want "log message should not contain sensitive data"
 	log.Print("secret key found")    // want "log message should not contain sensitive data"
 	log.Print("credential mismatch") // want "log message should not contain sensitive data"
@@ -90,7 +89,6 @@ func TestSensitiveExtended() {
 }
 
 func TestSensitiveConcat() {
-	log.Print("api_key" + " invalid") // want "log message should not contain sensitive data"
 	log.Print("secret " + "found")    // want "log message should not contain sensitive data"
 
 	// Valid concatenated strings

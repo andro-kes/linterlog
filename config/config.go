@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -15,16 +16,22 @@ type Config struct {
 	} `yaml:"rules"`
 }
 
-func ParseConfig() (cfg *Config, err error) {
-	data, err := os.ReadFile("config.yml")
+func ParseConfig() (cfg Config, err error) {
+	wd, err := os.Getwd()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	err = yaml.Unmarshal(data, cfg)
+	configPath := filepath.Join(wd, "config/config.yml")
+	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return cfg, nil
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		return
+	}
+
+	return
 }

@@ -29,7 +29,7 @@ var Analyzer = &analysis.Analyzer{
 func run(pass *analysis.Pass) (any, error) {
 	cfg, err := config.ParseConfig()
 	if err != nil {
-		pass.Reportf(pass.Pkg.Scope().Pos(), "Fail to load configs")
+		pass.Reportf(pass.Pkg.Scope().Pos(), err.Error())
 	}
 
 	for _, file := range pass.Files {
@@ -39,7 +39,7 @@ func run(pass *analysis.Pass) (any, error) {
 				return true
 			}
 			if isLogCall(call) {
-				checkLogCall(pass, call, cfg)
+				checkLogCall(pass, call, &cfg)
 			}
 			return true
 		})
