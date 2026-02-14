@@ -97,14 +97,12 @@ func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit) {
 	}
 
 	// Rule 3: Check for special symbols first (!, :, ;, ..., emojis)
-	// This should be checked before English-only to provide more specific error messages
 	if hasSpecialSymbols(message) {
 		pass.Reportf(lit.Pos(), "log message should not contain special symbols or emojis")
 		return
 	}
 
-	// Rule 2: Check for English-only (ASCII letters + digits)
-	// This catches non-English letters (Cyrillic, Chinese, etc.)
+	// Rule 2: Check for English-only + digits
 	if !isEnglishOnly(message) {
 		pass.Reportf(lit.Pos(), "log message should contain only english symbols")
 		return
@@ -132,15 +130,13 @@ func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr) {
 		return
 	}
 
-	// Rule 2: Check for English-only (ASCII letters + digits)
-	// This catches non-English letters (Cyrillic, Chinese, etc.)
+	// Rule 2: Check for English-only + digits
 	if !isEnglishOnly(message) {
 		pass.Reportf(expr.Pos(), "log message should contain only english symbols")
 		return
 	}
 
 	// Rule 4: Check for sensitive data in parts and joined message
-	// For concatenated strings, check with "token" included (suspicious pattern)
 	for _, p := range parts {
 		if err := checkSensitiveDataWithToken(p); err != nil {
 			pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
@@ -185,7 +181,6 @@ func isASCIILetter(r rune) bool {
 }
 
 func checkSensitiveData(msg string) error {
-	// These keywords are always sensitive
 	alwaysSensitive := []string{
 		"password",
 		"api_key",
@@ -222,37 +217,24 @@ func checkSensitiveDataWithToken(msg string) error {
 	return nil
 }
 
-// isEnglishOnly checks if message contains only ASCII letters, digits, spaces, and basic punctuation
 func isEnglishOnly(message []rune) bool {
 	for _, r := range message {
 		if isASCIILetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
 			continue
 		}
-		// Allow basic punctuation: period, comma, question mark, hyphen, underscore, apostrophe
-		if r == '.' || r == ',' || r == '?' || r == '-' || r == '_' || r == '\'' {
-			continue
-		}
-		// Reject anything else (non-English letters, emojis, special symbols)
 		return false
 	}
 	return true
 }
 
-// hasSpecialSymbols checks for specific special symbols and emojis that should be rejected
-// Returns true if message contains !, :, ;, repeated ellipsis (...), or emojis
-// Note: Non-ASCII letters (like Cyrillic, Chinese) are NOT caught here - they're handled by isEnglishOnly
 func hasSpecialSymbols(message []rune) bool {
 	for i, r := range message {
-		// Check for repeated ellipsis (...)
 		if r == '.' && i+2 < len(message) && message[i+1] == '.' && message[i+2] == '.' {
 			return true
 		}
-		// Check for special symbols !, :, ;
 		if r == '!' || r == ':' || r == ';' {
 			return true
 		}
-		// Check for emojis (non-ASCII characters that are NOT letters)
-		// This specifically catches emojis, symbols, etc., but not non-English letters
 		if r > 127 && !unicode.IsLetter(r) {
 			return true
 		}
