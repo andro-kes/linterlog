@@ -4,6 +4,22 @@
 
 This guide will help you add your own rules for log checking.
 
+## Текущая реализация / Current Implementation
+
+linterlog в настоящее время реализует 4 правила:
+
+linterlog currently implements 4 rules:
+
+1. **Lowercase first letter** (capital_letter): Сообщения должны начинаться со строчной буквы
+   - ✨ Поддерживает SuggestedFix для автоматического исправления
+2. **English-only content** (only_english): Только английские буквы, цифры и пробелы
+3. **No special symbols** (special_symbols): Запрет `!`, `:`, `;`, `...`, эмодзи и не-ASCII символов (кроме букв)
+4. **Sensitive data** (sensitive_data): Обнаружение `password`, `token`, `api_key`, `apikey`, `secret`, `credential`
+
+Все правила настраиваются через `config/config.yml`.
+
+All rules are configurable via `config/config.yml`.
+
 ## Архитектура / Architecture
 
 Линтер построен на базе фреймворка `go/analysis` и состоит из нескольких ключевых компонентов:
@@ -21,9 +37,9 @@ linterlog.go
 
 ## Шаг 1: Определение функций логирования / Step 1: Define Logging Functions
 
-Отредактируйте функцию `isLogCall()` чтобы распознавать функции вашей библиотеки логирования:
+Текущая реализация `isLogCall()` распознает следующие методы:
 
-Edit the `isLogCall()` function to recognize your logging library functions:
+Current `isLogCall()` implementation recognizes these methods:
 
 ```go
 func isLogCall(call *ast.CallExpr) bool {
@@ -32,37 +48,97 @@ func isLogCall(call *ast.CallExpr) bool {
         return false
     }
 
-    // Добавьте функции вашей библиотеки
-    // Add your library functions
+    // Поддерживаемые функции логирования
+    // Supported logging functions
     logFuncs := map[string]bool{
-        // Стандартная библиотека / Standard library
-        "Print":   true,
-        "Println": true,
-        "Printf":  true,
-        
-        // logrus
-        "Info":    true,
-        "Infof":   true,
-        "Error":   true,
-        "Errorf":  true,
-        
-        // zap
-        "Debug":   true,
-        "Info":    true,
-        "Warn":    true,
-        "Error":   true,
-        
-        // Добавьте свои / Add yours
-        "MyCustomLog": true,
+        "Print": true, "Println": true, "Printf": true,
+        "Fatal": true, "Fatalf": true, "Fatalln": true,
+        "Panic": true, "Panicf": true, "Panicln": true,
+        "Error": true, "Errorf": true, "Errorln": true,
+        "Warn": true, "Warnf": true, "Warnln": true,
+        "Warning": true,
+        "Info":    true, "Infof": true, "Infoln": true,
+        "Debug": true, "Debugf": true, "Debugln": true,
+        "Log": true, "Logf": true,
     }
 
     return logFuncs[selector.Sel.Name]
 }
 ```
 
+Эти методы работают для стандартной библиотеки `log`, `log/slog`, `zap`, `logrus` и других.
+
+These methods work for standard library `log`, `log/slog`, `zap`, `logrus`, and others.
+
+Чтобы добавить новые функции, просто добавьте их в map `logFuncs`.
+
+To add new functions, simply add them to the `logFuncs` map.
+
 ## Шаг 2: Добавление правил проверки / Step 2: Add Validation Rules
 
-### Простое правило / Simple Rule
+### Текущая реализация / Current Implementation
+
+Функция `checkLogMessage()` реализует 4 правила:
+
+The `checkLogMessage()` function implements 4 rules:
+
+```go
+func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit, cfg *config.Config) {
+    // ... извлечение сообщения / extract message ...
+    message := []rune(unquoted)
+
+    // Rule 1: Lowercase first letter (с SuggestedFix / with SuggestedFix)
+    if cfg.Rules.CapitalLetter {
+        if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
+            message[0] = unicode.ToLower(message[0])
+            pass.Report(
+                analysis.Diagnostic{
+                    Pos:     lit.Pos(),
+                    End:     lit.End(),
+                    Message: "log message should not start with a capital letter",
+                    SuggestedFixes: []analysis.SuggestedFix{
+                        {
+                            Message: "lowercase first letter",
+                            TextEdits: []analysis.TextEdit{
+                                {
+                                    Pos:     lit.Pos(),
+                                    End:     lit.End(),
+                                    NewText: []byte(string(message)),
+                                },
+                            },
+                        },
+                    },
+                },
+            )
+        }
+    }
+
+    // Rule 3: Check for special symbols (!, :, ;, ..., emojis)
+    if cfg.Rules.SpecialSymbols {
+        if hasSpecialSymbols(message) {
+            pass.Reportf(lit.Pos(), "log message should not contain special symbols or emojis")
+            return
+        }
+    }
+
+    // Rule 2: English-only + digits + spaces
+    if cfg.Rules.OnlyEnglish {
+        if !isEnglishOnly(message) {
+            pass.Reportf(lit.Pos(), "log message should contain only english symbols")
+            return
+        }
+    }
+
+    // Rule 4: Sensitive data
+    if cfg.Rules.SensitiveData {
+        if err := checkSensitiveData(unquoted); err != nil {
+            pass.Reportf(lit.Pos(), "log message should not contain sensitive data")
+        }
+    }
+}
+```
+
+### Добавление нового правила / Adding a New Rule
 
 Добавьте проверку в `checkLogMessage()`:
 
@@ -375,3 +451,9 @@ If you have questions:
 2. Study existing code in `linterlog.go`
 3. Run tests with `-v` flag for detailed information
 4. Open an issue in the GitHub repository
+
+## AI Assistance Acknowledgment
+
+Эта документация была создана и обновлена с использованием AI-помощников (GitHub Copilot и LLM Assistant) для ускорения процесса разработки.
+
+This documentation was created and updated with the assistance of AI tools (GitHub Copilot and LLM Assistant) to accelerate the development process.

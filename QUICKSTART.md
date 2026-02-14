@@ -2,6 +2,11 @@
 
 ## Русский
 
+### Требования
+
+- Go 1.22 или выше (тестируется на Go 1.22, 1.23, 1.24)
+- make (опционально)
+
 ### Шаг 1: Клонирование репозитория
 ```bash
 git clone https://github.com/andro-kes/linterlog.git
@@ -50,6 +55,11 @@ Running linter on testdata...
 
 ## English
 
+### Requirements
+
+- Go 1.22 or higher (tested on Go 1.22, 1.23, 1.24)
+- make (optional)
+
 ### Step 1: Clone the repository
 ```bash
 git clone https://github.com/andro-kes/linterlog.git
@@ -86,13 +96,19 @@ Running linter on testdata...
 
 1. Open `linterlog.go`
 2. Find the `checkLogMessage()` function
-3. Uncomment the example or add your own rules
+3. Add your custom rules (all 4 rules are already implemented)
 4. Run `make test` to verify
 5. Run `make build && make example` to test
 
-### Rule examples
+### Current Implemented Rules
 
-See `EXAMPLES.md` file for detailed examples of various rules.
+See `README.md` for detailed information about current rules:
+- Lowercase first letter (с автоисправлением / with auto-fix)
+- English-only content
+- No special symbols or emojis
+- Sensitive data detection
+
+See `README.md` for detailed information about current rules.
 
 ---
 
@@ -173,3 +189,12 @@ Available targets:
   example         Run the linter on example code
   help            Show this help message
 ```
+
+
+---
+
+## AI Assistance Acknowledgment
+
+Эта документация была создана с использованием AI-помощников (GitHub Copilot и LLM Assistant).
+
+This documentation was created with the assistance of AI tools (GitHub Copilot and LLM Assistant).
