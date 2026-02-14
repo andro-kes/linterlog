@@ -114,7 +114,7 @@ func checkSensitiveData(msg string) error {
 func checkSensitiveDataWithToken(msg string) error {
     sensitiveData := []string{
         "password",
-        "token",
+        "token",      // Only used for concatenation checks
         "api_key",
         "apikey",
         "secret",
@@ -130,9 +130,9 @@ func checkSensitiveDataWithToken(msg string) error {
 }
 ```
 
-**Примечание**: Для конкатенации строк используется расширенный список, включающий `token`.
+**Примечание**: Функция `checkSensitiveData()` (для литералов) не включает `token`, тогда как `checkSensitiveDataWithToken()` (для конкатенаций) включает его, поскольку конкатенации вида "token" + значение считаются подозрительными.
 
-**Note**: For string concatenations, an extended list including `token` is used.
+**Note**: The `checkSensitiveData()` function (for literals) does not include `token`, while `checkSensitiveDataWithToken()` (for concatenations) includes it, since concatenations like "token" + value are considered suspicious.
 
 ---
 

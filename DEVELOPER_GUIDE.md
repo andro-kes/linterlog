@@ -73,7 +73,6 @@ These methods work for standard library `log`, `log/slog`, `zap`, `logrus`, and 
 Чтобы добавить новые функции, просто добавьте их в map `logFuncs`.
 
 To add new functions, simply add them to the `logFuncs` map.
-```
 
 ## Шаг 2: Добавление правил проверки / Step 2: Add Validation Rules
 

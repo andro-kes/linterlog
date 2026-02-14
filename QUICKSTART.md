@@ -102,7 +102,7 @@ Running linter on testdata...
 
 ### Current Implemented Rules
 
-См. `README.md` для подробной информации о текущих правилах:
+See `README.md` for detailed information about current rules:
 - Lowercase first letter (с автоисправлением / with auto-fix)
 - English-only content
 - No special symbols or emojis
