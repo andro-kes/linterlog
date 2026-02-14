@@ -1,0 +1,5 @@
+rules:
+  - capital_letter: true
+  - only_english: true
+  - special_symbols: true
+  - sensitive_data: true

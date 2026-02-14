@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/andro-kes/linterlog/config"
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -26,6 +27,11 @@ var Analyzer = &analysis.Analyzer{
 }
 
 func run(pass *analysis.Pass) (any, error) {
+	cfg, err := config.ParseConfig()
+	if err != nil {
+		pass.Reportf(pass.Pkg.Scope().Pos(), "Fail to load configs")
+	}
+
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			call, ok := n.(*ast.CallExpr)
@@ -33,7 +39,7 @@ func run(pass *analysis.Pass) (any, error) {
 				return true
 			}
 			if isLogCall(call) {
-				checkLogCall(pass, call)
+				checkLogCall(pass, call, cfg)
 			}
 			return true
 		})
@@ -62,7 +68,7 @@ func isLogCall(call *ast.CallExpr) bool {
 	return logFuncs[selector.Sel.Name]
 }
 
-func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
+func checkLogCall(pass *analysis.Pass, call *ast.CallExpr, cfg *config.Config) {
 	if len(call.Args) == 0 {
 		return
 	}
@@ -70,16 +76,16 @@ func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
 
 	switch e := msgExpr.(type) {
 	case *ast.BasicLit:
-		checkLogMessage(pass, e)
+		checkLogMessage(pass, e, cfg)
 
 	case *ast.BinaryExpr:
-		checkBinaryMessage(pass, e)
+		checkBinaryMessage(pass, e, cfg)
 
 	default:
 	}
 }
 
-func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit) {
+func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit, cfg *config.Config) {
 	if lit.Kind != token.STRING {
 		return
 	}
@@ -92,58 +98,74 @@ func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit) {
 	message := []rune(unquoted)
 
 	// Rule 1: Check if message starts with uppercase letter
-	if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
-		pass.Reportf(lit.Pos(), "log message should not start with a capital letter")
+	if cfg.Rules.CapitalLetter {
+		if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
+			pass.Reportf(lit.Pos(), "log message should not start with a capital letter")
+		}
 	}
-
+	
 	// Rule 3: Check for special symbols first (!, :, ;, ..., emojis)
-	if hasSpecialSymbols(message) {
-		pass.Reportf(lit.Pos(), "log message should not contain special symbols or emojis")
-		return
+	if cfg.Rules.SpecialSymbols {
+		if hasSpecialSymbols(message) {
+			pass.Reportf(lit.Pos(), "log message should not contain special symbols or emojis")
+			return
+		}	
 	}
-
+	
 	// Rule 2: Check for English-only + digits
-	if !isEnglishOnly(message) {
-		pass.Reportf(lit.Pos(), "log message should contain only english symbols")
-		return
+	if cfg.Rules.OnlyEnglish {
+		if !isEnglishOnly(message) {
+			pass.Reportf(lit.Pos(), "log message should contain only english symbols")
+			return
+		}	
 	}
-
+	
 	// Rule 4: Check for sensitive data
-	if err := checkSensitiveData(unquoted); err != nil {
-		pass.Reportf(lit.Pos(), "log message should not contain sensitive data")
+	if cfg.Rules.SensitiveData {
+		if err := checkSensitiveData(unquoted); err != nil {
+			pass.Reportf(lit.Pos(), "log message should not contain sensitive data")
+		}	
 	}
 }
 
-func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr) {
+func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr, cfg *config.Config) {
 	parts := extractStringLiteralsFromConcat(expr)
 	joined := strings.Join(parts, "")
 	message := []rune(joined)
 
 	// Rule 1: Check if message starts with uppercase letter
-	if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
-		pass.Reportf(expr.Pos(), "log message should not start with a capital letter")
+	if cfg.Rules.CapitalLetter {
+		if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
+			pass.Reportf(expr.Pos(), "log message should not start with a capital letter")
+		}
 	}
-
+	
 	// Rule 3: Check for special symbols first (!, :, ;, ..., emojis)
-	if hasSpecialSymbols(message) {
-		pass.Reportf(expr.Pos(), "log message should not contain special symbols or emojis")
-		return
-	}
-
-	// Rule 2: Check for English-only + digits
-	if !isEnglishOnly(message) {
-		pass.Reportf(expr.Pos(), "log message should contain only english symbols")
-		return
-	}
-
-	// Rule 4: Check for sensitive data in parts and joined message
-	for _, p := range parts {
-		if err := checkSensitiveDataWithToken(p); err != nil {
-			pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
+	if cfg.Rules.SpecialSymbols {
+		if hasSpecialSymbols(message) {
+			pass.Reportf(expr.Pos(), "log message should not contain special symbols or emojis")
 			return
 		}
 	}
-
+	
+	// Rule 2: Check for English-only + digits
+	if cfg.Rules.OnlyEnglish {
+		if !isEnglishOnly(message) {
+			pass.Reportf(expr.Pos(), "log message should contain only english symbols")
+			return
+		}	
+	}
+	
+	// Rule 4: Check for sensitive data in parts and joined message
+	if cfg.Rules.SensitiveData {
+		for _, p := range parts {
+			if err := checkSensitiveDataWithToken(p); err != nil {
+				pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
+				return
+			}
+		}	
+	}
+	
 	if err := checkSensitiveDataWithToken(joined); err != nil {
 		pass.Reportf(expr.Pos(), "log message should not contain sensitive data")
 		return
