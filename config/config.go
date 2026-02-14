@@ -15,7 +15,7 @@ type Config struct {
 	} `yaml:"rules"`
 }
 
-func ParseConfig() (cfg *Config, err error){
+func ParseConfig() (cfg *Config, err error) {
 	data, err := os.ReadFile("config.yml")
 	if err != nil {
 		return nil, err

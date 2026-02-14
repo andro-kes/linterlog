@@ -100,7 +100,26 @@ func checkLogMessage(pass *analysis.Pass, lit *ast.BasicLit, cfg *config.Config)
 	// Rule 1: Check if message starts with uppercase letter
 	if cfg.Rules.CapitalLetter {
 		if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
-			pass.Reportf(lit.Pos(), "log message should not start with a capital letter")
+			message[0] = unicode.ToLower(message[0])
+			pass.Report(
+				analysis.Diagnostic{
+					Pos: lit.Pos(),
+					End: lit.End(),
+					Message: "log message should not start with a capital letter",
+					SuggestedFixes: []analysis.SuggestedFix{
+						{
+							Message: "lowercase first letter",
+							TextEdits: []analysis.TextEdit{
+								{
+									Pos:     lit.Pos(),
+									End:     lit.End(),
+									NewText: []byte(string(message)),
+								},
+							},
+						},
+					},
+				},
+			)	
 		}
 	}
 	
@@ -136,7 +155,26 @@ func checkBinaryMessage(pass *analysis.Pass, expr *ast.BinaryExpr, cfg *config.C
 	// Rule 1: Check if message starts with uppercase letter
 	if cfg.Rules.CapitalLetter {
 		if len(message) > 0 && unicode.IsLetter(message[0]) && unicode.IsUpper(message[0]) {
-			pass.Reportf(expr.Pos(), "log message should not start with a capital letter")
+			message[0] = unicode.ToLower(message[0])
+			pass.Report(
+				analysis.Diagnostic{
+					Pos: expr.Pos(),
+					End: expr.End(),
+					Message: "log message should not start with a capital letter",
+					SuggestedFixes: []analysis.SuggestedFix{
+						{
+							Message: "lowercase first letter",
+							TextEdits: []analysis.TextEdit{
+								{
+									Pos:     expr.Pos(),
+									End:     expr.End(),
+									NewText: []byte(string(message)),
+								},
+							},
+						},
+					},
+				},
+			)	
 		}
 	}
 	
