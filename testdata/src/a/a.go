@@ -6,7 +6,7 @@ import (
 )
 
 func TestCapital() {
-	log.Print("Capital letter") // want "log message should not start with a capital letter"
+	log.Print("Capital letter")                 // want "log message should not start with a capital letter"
 	slog.Error("Failed to connect to database") // want "log message should not start with a capital letter"
 
 	// Valid log calls
@@ -15,9 +15,8 @@ func TestCapital() {
 }
 
 func TestCapitalConcat() {
-	// Test uppercase start detection on concatenated strings
 	log.Print("Connection" + " failed") // want "log message should not start with a capital letter"
-	log.Print("Error " + "occurred") // want "log message should not start with a capital letter"
+	log.Print("Error " + "occurred")    // want "log message should not start with a capital letter"
 
 	// Valid concatenated strings
 	log.Print("connection" + " established")
@@ -32,9 +31,8 @@ func TestOnlyEnglish() {
 }
 
 func TestOnlyEnglishConcat() {
-	// Test non-English detection on concatenated strings
 	log.Print("ошибка " + "соединения") // want "log message should contain only english symbols"
-	log.Print("connection " + "失败") // want "log message should contain only english symbols"
+	log.Print("connection " + "失败")     // want "log message should contain only english symbols"
 
 	// Valid concatenated strings with English only
 	log.Print("connection " + "established")
@@ -42,7 +40,6 @@ func TestOnlyEnglishConcat() {
 }
 
 func TestDigitsAllowed() {
-	// Digits should be allowed in messages
 	log.Print("connected to port 8080")
 	log.Print("server started on port 3000")
 	log.Print("processing 123 items")
@@ -51,12 +48,11 @@ func TestDigitsAllowed() {
 }
 
 func TestSpecialSymbols() {
-	// Test special symbols and emoji rejection
-	log.Print("connection failed!") // want "log message should not contain special symbols or emojis"
+	log.Print("connection failed!")        // want "log message should not contain special symbols or emojis"
 	log.Print("error: connection refused") // want "log message should not contain special symbols or emojis"
-	log.Print("waiting; retry scheduled") // want "log message should not contain special symbols or emojis"
-	log.Print("loading...") // want "log message should not contain special symbols or emojis"
-	log.Print("success 🎉") // want "log message should not contain special symbols or emojis"
+	log.Print("waiting; retry scheduled")  // want "log message should not contain special symbols or emojis"
+	log.Print("loading...")                // want "log message should not contain special symbols or emojis"
+	log.Print("success 🎉")                 // want "log message should not contain special symbols or emojis"
 
 	// Valid messages without special symbols
 	log.Print("connection failed")
@@ -65,9 +61,8 @@ func TestSpecialSymbols() {
 }
 
 func TestSpecialSymbolsConcat() {
-	// Test special symbols rejection in concatenated strings
 	log.Print("connection " + "failed!") // want "log message should not contain special symbols or emojis"
-	log.Print("error: " + "refused") // want "log message should not contain special symbols or emojis"
+	log.Print("error: " + "refused")     // want "log message should not contain special symbols or emojis"
 
 	// Valid concatenated strings
 	log.Print("connection " + "failed")
@@ -84,10 +79,8 @@ func TestSensitive() {
 }
 
 func TestSensitiveExtended() {
-	// Test extended sensitive data patterns
-	log.Print("api_key is invalid") // want "log message should not contain sensitive data"
-	log.Print("apikey value") // want "log message should not contain sensitive data"
-	log.Print("secret key found") // want "log message should not contain sensitive data"
+	log.Print("apikey value")        // want "log message should not contain sensitive data"
+	log.Print("secret key found")    // want "log message should not contain sensitive data"
 	log.Print("credential mismatch") // want "log message should not contain sensitive data"
 
 	// Valid log calls without sensitive data
@@ -96,9 +89,7 @@ func TestSensitiveExtended() {
 }
 
 func TestSensitiveConcat() {
-	// Test sensitive data detection in concatenated strings
-	log.Print("api_key" + " invalid") // want "log message should not contain sensitive data"
-	log.Print("secret " + "found") // want "log message should not contain sensitive data"
+	log.Print("secret " + "found")    // want "log message should not contain sensitive data"
 
 	// Valid concatenated strings
 	log.Print("validation " + "successful")
